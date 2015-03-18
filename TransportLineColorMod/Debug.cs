@@ -1,12 +1,20 @@
 using ColossalFramework.Plugins;
+using System;
 
 namespace TransportLineColorMod
 {
-    class Debug
+    public static class Debug
     {
-        public static void Message(string message)
+        private const string MSG_PREFIX = "[" + TransportLineColorMod.MOD_NAME + "] ";
+
+        public static void Message(object message, params object[] args)
         {
-            DebugOutputPanel.AddMessage(PluginManager.MessageType.Message, message);
+            #if (DEBUG)
+            DebugOutputPanel.AddMessage(
+                PluginManager.MessageType.Message,
+                String.Format(MSG_PREFIX + message.ToString(), args)
+            );
+            #endif
         }
     }
 }

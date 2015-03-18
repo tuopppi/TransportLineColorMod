@@ -44,6 +44,7 @@ namespace TransportLineColorMod
                     if ((transportLine.m_flags & TransportLine.Flags.Created) == TransportLine.Flags.Created)
                     {
                         m_registeredTransportLineIDs.Add(lineID);
+                        Debug.Message("Added transport line {0} flags {1}", lineID, transportLine.m_flags);
                         NewTransportLine(lineID, transportLine);
                     }
                 });
@@ -51,6 +52,8 @@ namespace TransportLineColorMod
             // TransportLine was removed
             else if (SimulationTransportLineCount < RegisteredTransportLineCount)
             {
+                Debug.Message("Removed transport line");
+
                 m_registeredTransportLineIDs.Clear();
 
                 // Collect all lines that are still present

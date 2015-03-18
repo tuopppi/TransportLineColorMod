@@ -24,10 +24,25 @@ namespace TransportLineColorMod
 
         private void setLineColor(ushort lineID, TransportLine transportLine)
         {
-            var results = m_transportManager.SetLineColor(lineID, generateLineColor(lineID));
+            if (!hasCustomColor(transportLine))
+            {
+                var before = transportLine.m_flags.ToString();
 
-            // Evaluate results; without this lines don't seem to change their color
-            while(results.MoveNext()); 
+                var results = m_transportManager.SetLineColor(lineID, generateLineColor(lineID));
+
+                // Evaluate results; without looping results enumerator lines don't seem to change their color.
+                while (results.MoveNext())
+                {
+                    if (results.Current)
+                    {
+                        Debug.Message("Custom color assigned for lineID {0}: {1} -> {2}", lineID, before, transportLine.m_flags);
+                    }
+                    else
+                    {
+                        Debug.Message("Failed to assign color for lineID {0}: {1} -> {2}", lineID, before, transportLine.m_flags);
+                    }
+                }
+            }
         }
 
         private UnityEngine.Color generateLineColor(int lineID)
@@ -54,6 +69,11 @@ namespace TransportLineColorMod
                 return new UnityEngine.Color(t, p, value);
             else
                 return new UnityEngine.Color(value, p, q);
+        }
+
+        private bool hasCustomColor(TransportLine line)
+        {
+            return (line.m_flags & TransportLine.Flags.CustomColor) == TransportLine.Flags.CustomColor;
         }
     }
 }
