@@ -50,6 +50,7 @@
     <Compile Include="Debug.cs" />
     <Compile Include="TransportLineColorMod.cs" />
     <Compile Include="ColorAssigner.cs" />
+    <Compile Include="TransportLineExtensions.cs" />
     <Compile Include="TransportLineObserver.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

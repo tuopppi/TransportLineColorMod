@@ -41,9 +41,9 @@ namespace TransportLineColorMod
             {
                 ForEachTransportLine((lineID, transportLine) =>
                 {
-                    if ((transportLine.m_flags & TransportLine.Flags.Created) == TransportLine.Flags.Created)
+                    bool newLineWasRegistered = registerIfCreated(lineID, transportLine);
+                    if (newLineWasRegistered)
                     {
-                        m_registeredTransportLineIDs.Add(lineID);
                         Debug.Message("Added transport line {0} flags {1}", lineID, transportLine.m_flags);
                         NewTransportLine(lineID, transportLine);
                     }
@@ -59,10 +59,7 @@ namespace TransportLineColorMod
                 // Collect all lines that are still present
                 ForEachTransportLine((lineID, transportLine) =>
                 {
-                    if (transportLine.Complete)
-                    {
-                        m_registeredTransportLineIDs.Add(lineID);
-                    }
+                    registerIfCreated(lineID, transportLine);
                 });
             }
         }
@@ -78,6 +75,22 @@ namespace TransportLineColorMod
                 action(lineID, lines.m_buffer[lineID]);
             }
         }
+
+        /// <summary>
+        /// Register transportLine if it has flag <see cref="TransportLine.Flags.Created"/>
+        /// </summary>
+        /// <returns>True if new line was registered</returns>
+        private bool registerIfCreated(ushort lineID, TransportLine transportLine)
+        {
+            if (transportLine.FlagSet(TransportLine.Flags.Created))
+            {
+                return m_registeredTransportLineIDs.Add(lineID);
+            }
+
+            return false;
+        }
+
+
 
         private int SimulationTransportLineCount
         {
