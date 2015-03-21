@@ -1,19 +1,23 @@
 ﻿using ColossalFramework;
+using ColossalFramework.IO;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 namespace TransportLineColorMod
 {
     public class ColorAssigner
     {
-        private readonly TransportManager m_transportManager;
+        public const string CUSTOM_COLORS_FILE_NAME = "colors.txt";
 
         // Generated using http://phrogz.net/css/distinct-colors.html
-        // Hue 0°-360° (13°), Saturation 90%-100% (8%), Value 80-100 (2%)
-        // TODO: Add support for loading custom color maps?
-        private const string COLOR_MAP = "#cc1414, #45cc14, #144fcc, #cc1430, #04a2d6, #0fdb04, #ad16db, #4e04e0, #eb3705, #175aeb, #eb0559, #e2f518, #fa7a19, #c519fa, #05c1ff, #cc0404, #1ecc14, #1427cc, #cc0422, #7804d6, #16db37, #d816db, #8616e0, #eb4517, #054deb, #eb1737, #53f518, #fa6f05, #f619fa, #1a62ff, #cc2f04, #14cc33, #2a14cc, #d18904, #d6047f, #16dbb7, #db16b4, #e0168c, #eb6805, #172deb, #eb0527, #11f505, #faab19, #fa19cd, #2205ff, #cc3c14, #14cc5b, #5214cc, #04d153, #db0404, #16d5db, #db165e, #d4e617, #eb7317, #3017eb, #f09d05, #18f56d, #fadc19, #fa052a, #5805ff, #cc6414, #14cc83, #7914cc, #1c04d1, #db1616, #167fdb, #db0453, #a8e617, #eba117, #5e17eb, #a9f005, #19bef5, #19fa3e, #fa193b, #8f05ff, #cc5b04, #14ccaa, #a114cc, #4804d1, #db4116, #0477db, #db0425, #7be617, #ebce17, #8305eb, #76f005, #9218f5, #05fa63, #ffa805, #ff0597, #cc8c14, #14c6cc, #c914cc, #c5d604, #db3304, #0448db, #db1634, #4ee617, #22eb17, #b917eb, #05f092, #f51999, #19fad1, #baff1a, #ff1a6e, #ccb414, #149ecc, #cc14a7, #97d604, #db6b16, #1654db, #e09305, #05e65b, #17eb3b, #e717eb, #188bf0, #fa1919, #0553fa, #88ff1a, #ff0561, #bdcc14, #1476cc, #cc1480, #6ad604, #db6204, #162adb, #16e064, #17e693, #17ebc4, #eb17c0, #0582f0, #fa0505, #192ffa, #48ff05, #95cc14, #046fcc, #cc1458, #3cd604, #db9616, #2d16db, #16aee0, #eb1717, #17e4eb, #eb058b, #2005f0, #fa3a05, #3319fa, #1affa3, #6dcc14, #0443cc, #cc044d, #04d682, #dbc116, #5816db, #1e04e0, #eb0505, #05b1eb, #eb1765, #5305f0, #fa4a19, #6419fa, #1af7ff";
-        private readonly List<UnityEngine.Color> m_colors;
+        // Hue 0°-360° (22°), Saturation 100%, Value 60-100 (23%)
+        public const string DEFAULT_COLORS = "#d40000, #bed400, #00d42a, #0094d4, #5500d4, #d4006a, #990000, #8a9900, #00991f, #006b99, #3d0099, #99004d, #d44e00, #71d400, #00d478, #0047d4, #a200d4, #d4001c, #993800, #529900, #009957, #003399, #750099, #990014, #d49b00, #23d400, #00d4c6, #0700d4, #d400b7, #997000, #199900, #00998f, #050099, #990085";
+
+        private readonly TransportManager m_transportManager;
+        private readonly string m_colorMapConfigPath;
+        private List<UnityEngine.Color> m_colors;
 
         /// <summary>
         /// ColorAssigner will listen <see cref="TransportLineObserver.NewTransportLine" /> event and 
@@ -22,9 +26,52 @@ namespace TransportLineColorMod
         /// <param name="observer"></param>
         public ColorAssigner(TransportLineObserver observer)
         {
-            m_colors = parseColorMap(COLOR_MAP);
+            m_colorMapConfigPath = new[] { 
+                DataLocation.modsPath, 
+                TransportLineColorMod.MOD_NAME, 
+                CUSTOM_COLORS_FILE_NAME 
+            }.Aggregate(Path.Combine);
+
+            if (!TryReadCustomColorMap(m_colorMapConfigPath))
+            {
+                Debug.DebugMessage("Using default colors");
+                m_colors = ParseColorMap(DEFAULT_COLORS);
+            }
+
             m_transportManager = Singleton<TransportManager>.instance;
             observer.NewTransportLine += setLineColor;
+        }
+
+        /// <summary>
+        /// Reads and parses custom color file.
+        /// Returns true if file was exists and was successfully parsed and contains at least one valid value.
+        /// Returns false if file does not exist or was unable to read it.
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns></returns>
+        private bool TryReadCustomColorMap(string path)
+        {
+            if (FileUtils.Exists(path))
+            {
+                try
+                {
+                    using (var reader = File.OpenText(path))
+                    {
+                        m_colors = ParseColorMap(reader.ReadToEnd());
+                        return m_colors.Count > 0;
+                    }
+                }
+                catch (Exception e)
+                {
+                    // Custom color map file was empty, had invalid syntax, etc...
+                    Debug.Error("Tried to read custom color map but encountered following error: {0}", e.Message);
+                    return false;
+                }
+            }
+            else
+            {
+                return false;
+            }
         }
 
         private void setLineColor(ushort lineID, TransportLine transportLine)
@@ -38,20 +85,47 @@ namespace TransportLineColorMod
                 // Evaluate results; without looping results enumerator lines don't seem to change their color.
                 while (results.MoveNext()) ;
 
-                Debug.Message("Color assigned for lineID {0}", lineID);
+                Debug.DebugMessage("Color assigned for lineID {0}", lineID);
             }
         }
 
-        private List<UnityEngine.Color> parseColorMap(string colors)
+        /// <summary>
+        /// Returns list of valid colors parsed from passed string. If no valid values were found an empty list is returned.
+        /// </summary>
+        /// <param name="hexValueList">Comma separated list of hex color values. example <see cref="DEFAULT_COLORS"/></param>
+        public static List<UnityEngine.Color> ParseColorMap(string hexValueList)
         {
-            var values = from hex in colors.Split(',')
-                         select UInt32.Parse(hex.Trim('#', ' '), System.Globalization.NumberStyles.HexNumber) into hexValue
-                         select new UnityEngine.Color(
-                            ((hexValue & 0xff0000)>> 0x10) / 255f,
-                            ((hexValue & 0xff00)  >> 8)    / 255f,
-                            (hexValue & 0xff)              / 255f);
+            Debug.DebugMessage("Parsing color map: {0}", hexValueList);
 
-            return values.ToList();
+            var rgb_colors = new List<UnityEngine.Color>();
+            var invalidValues = new List<string>();
+
+            string newLineCharsRemoved = hexValueList.Replace('\n', ' ').Replace('\r', ' ');
+            foreach (var item in newLineCharsRemoved.Split(','))
+            {
+                uint colorNum;
+                bool isHexNumber = UInt32.TryParse(item.Trim('#', ' '), System.Globalization.NumberStyles.HexNumber, null, out colorNum);
+                if (isHexNumber && colorNum <= 0xffffff)
+                {
+                    // convert numeric value to RGB color
+                    rgb_colors.Add(new UnityEngine.Color(
+                        ((colorNum & 0xff0000) >> 0x10) / 255f,
+                        ((colorNum & 0x00ff00) >> 0x08) / 255f,
+                        ((colorNum & 0x0000ff) >> 0x00) / 255f));
+                }
+                else
+                {
+                    invalidValues.Add(item);
+                }
+            }
+
+            if (invalidValues.Count > 0)
+            {
+                var emptyStringsReplaced = invalidValues.Select(v => v.IsNullOrWhiteSpace() ? "<empty string>" : v).ToArray();
+                Debug.Warning("Color list contains invalid value(s): {0}", String.Join(",", emptyStringsReplaced));
+            }
+
+            return rgb_colors;
         }
     }
 }

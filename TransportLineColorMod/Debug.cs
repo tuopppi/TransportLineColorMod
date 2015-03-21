@@ -7,14 +7,31 @@ namespace TransportLineColorMod
     {
         private const string MSG_PREFIX = "[" + TransportLineColorMod.MOD_NAME + "] ";
 
-        public static void Message(object message, params object[] args)
+        public static void DebugMessage(object message, params object[] args)
         {
             #if (DEBUG)
-            DebugOutputPanel.AddMessage(
-                PluginManager.MessageType.Message,
-                String.Format(MSG_PREFIX + message.ToString(), args)
-            );
+            Message(message, args);
             #endif
+        }
+
+        public static void Message(object message, params object[] args)
+        {
+            output(PluginManager.MessageType.Message, message, args);
+        }
+
+        public static void Warning(object message, params object[] args)
+        {
+            output(PluginManager.MessageType.Warning, message, args);
+        }
+
+        public static void Error(object message, params object[] args)
+        {
+            output(PluginManager.MessageType.Error, message, args);
+        }
+
+        private static void output(PluginManager.MessageType type, object message, params object[] args)
+        {
+            DebugOutputPanel.AddMessage(type, String.Format(MSG_PREFIX + message.ToString(), args));
         }
     }
 }

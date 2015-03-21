@@ -19,7 +19,8 @@ namespace TransportLineColorMod
         /// </summary>
         public event Action<ushort, TransportLine> NewTransportLine;
 
-        public TransportLineObserver() : base() {
+        public TransportLineObserver() : base()
+        {
             m_colorAssigner = new ColorAssigner(this);
         }
 
@@ -44,7 +45,7 @@ namespace TransportLineColorMod
                     bool newLineWasRegistered = registerIfCreated(lineID, transportLine);
                     if (newLineWasRegistered)
                     {
-                        Debug.Message("Added transport line {0} flags {1}", lineID, transportLine.m_flags);
+                        Debug.DebugMessage("Added transport line {0} flags {1}", lineID, transportLine.m_flags);
                         NewTransportLine(lineID, transportLine);
                     }
                 });
@@ -52,7 +53,7 @@ namespace TransportLineColorMod
             // TransportLine was removed
             else if (SimulationTransportLineCount < RegisteredTransportLineCount)
             {
-                Debug.Message("Removed transport line");
+                Debug.DebugMessage("Removed transport line");
 
                 m_registeredTransportLineIDs.Clear();
 
@@ -89,8 +90,6 @@ namespace TransportLineColorMod
 
             return false;
         }
-
-
 
         private int SimulationTransportLineCount
         {
